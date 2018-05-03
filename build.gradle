@@ -27,6 +27,7 @@ repositories {
 
 dependencies {
 	compile('org.scala-lang:scala-library:2.12.5')
+	compile('com.typesafe.akka:akka-actor_2.12:2.5.11')
 	compile('org.springframework.boot:spring-boot-starter-web')
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 }
