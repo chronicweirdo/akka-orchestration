@@ -12,7 +12,17 @@ class AkkaSystem {
   }
 
   @Bean(Array("timerActor"))
-  def createInjectionActor(system: ActorSystem, springExtension: SpringExtension) = {
+  def createTimerActor(system: ActorSystem, springExtension: SpringExtension) = {
     system.actorOf(springExtension.props(classOf[TimerActor]))
+  }
+
+  @Bean(Array("masterActor"))
+  def createMasterActor(system: ActorSystem, springExtension: SpringExtension) = {
+    system.actorOf(springExtension.props(classOf[MasterActor]))
+  }
+
+  @Bean(Array("dataSourceActor"))
+  def createDataSourceActor(system: ActorSystem, springExtension: SpringExtension) = {
+    system.actorOf(springExtension.props(classOf[DataSourceActor]))
   }
 }
