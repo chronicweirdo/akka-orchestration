@@ -10,7 +10,7 @@ import scala.beans.BeanProperty
 
 object DataSourceActor {
   case class Load(id: String)
-  case class LoadResult(data: List[String])
+  case class LoadResult(data: List[_])
 }
 
 @Component("dataSourceActorPrototype")
