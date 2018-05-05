@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component
 import scala.beans.BeanProperty
 
 object WorkerActor {
-  case class Process(id: String)
+  case class Process(id: String, listener: ActorRef)
   case class ProcessResult(success: Boolean)
 }
 
@@ -34,10 +34,10 @@ class WorkerActor extends Actor {
   var id: String = _
 
   override def receive: Receive = {
-    case Process(id) => {
-      logger.info(s"starting work for $id")
+    case Process(id, listener) => {
+      logger.info(s"starting work for $id (${context.dispatcher})")
       this.id = id
-      this.initiator = sender()
+      this.initiator = listener
       dataSourceActor ! Load(id)
     }
     case LoadResult(data) => {

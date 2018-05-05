@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 class SlowService {
 
   def execute() = {
-    Thread.sleep(1000)
+    Thread.sleep(10000)
     "result"
   }
 }
