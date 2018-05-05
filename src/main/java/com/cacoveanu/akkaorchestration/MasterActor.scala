@@ -1,16 +1,15 @@
 package com.cacoveanu.akkaorchestration
 
-import java.util.concurrent.Executors
-
-import akka.actor.{Actor, ActorRef, PoisonPill}
+import akka.actor.Actor
 import com.cacoveanu.akkaorchestration.MasterActor._
-import com.cacoveanu.akkaorchestration.WorkerActor.{Process, ProcessResult, ProcessSynch}
+import com.cacoveanu.akkaorchestration.WorkerActor.{Process, ProcessResult}
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Scope
 import org.springframework.stereotype.Component
 
 import scala.beans.BeanProperty
+import scala.collection.mutable
 
 object MasterActor {
 
@@ -18,7 +17,7 @@ object MasterActor {
 
   case object Check
 
-  case class CheckResult(@BeanProperty running: Int)
+  case class CheckResult(@BeanProperty running: Int, @BeanProperty queued: Int)
 
   case class StartWorkers(ids: Iterable[Int])
 
@@ -36,43 +35,35 @@ class MasterActor extends Actor {
   @BeanProperty
   val springExtension: SpringExtension = null
 
-  def getWorkerStarter = context.actorOf(springExtension.props(classOf[WorkerStarterActor])
+  def getWorker = context.actorOf(springExtension.props(classOf[WorkerActor])
     .withDispatcher("high-load-dispatcher"))
 
   var running = 0
 
+  val messages = mutable.Queue.empty[Process]
+
+  val maximumConcurrentWorkers = Runtime.getRuntime.availableProcessors() / 2
+
+  def execute() = {
+    while (running < maximumConcurrentWorkers && messages.nonEmpty) {
+      getWorker ! messages.dequeue()
+      running += 1
+    }
+  }
+
   override def receive: Receive = {
     case StartWork =>
-      getWorkerStarter ! StartWorkers(1 to 100000)
+      for (id <- 1 to 100000) {
+        messages.enqueue(Process(id.toString))
+      }
+      execute()
       logger.info("done start work")
-    case StartedWorker(_) =>
-      running += 1
     case ProcessResult(_) =>
       logger.info("finished work")
       running -= 1
+      execute()
     case Check =>
       logger.info("checking running tasks")
-      sender() ! CheckResult(running)
-  }
-}
-
-@Component("workerStarterActorPrototype")
-@Scope("prototype")
-class WorkerStarterActor extends Actor {
-
-  @Autowired
-  @BeanProperty
-  val springExtension: SpringExtension = null
-
-  def getWorker = context.actorOf(springExtension.props(classOf[WorkerActor])
-    .withDispatcher("high-load-dispatcher"))
-
-  override def receive: Receive = {
-    case StartWorkers(ids) =>
-      for (id <- ids) {
-        getWorker ! ProcessSynch(id.toString, sender())
-        sender() ! StartedWorker(id)
-      }
-      self ! PoisonPill
+      sender() ! CheckResult(running, messages.size)
   }
 }
