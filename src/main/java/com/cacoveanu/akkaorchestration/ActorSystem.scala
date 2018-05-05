@@ -8,7 +8,8 @@ class AkkaSystem {
 
   @Bean
   def createSystem(springExtension: SpringExtension) : ActorSystem = {
-    ActorSystem("akka-orchestration-system")
+    val system = ActorSystem("akka-orchestration-system")
+    system
   }
 
   @Bean(Array("timerActor"))

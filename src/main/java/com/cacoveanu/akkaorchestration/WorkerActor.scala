@@ -1,6 +1,6 @@
 package com.cacoveanu.akkaorchestration
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, PoisonPill}
 import com.cacoveanu.akkaorchestration.DataSourceActor.{Load, LoadResult}
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.{Autowired, Qualifier}
@@ -45,6 +45,7 @@ class WorkerActor extends Actor {
       // processing this data somehow
       slowService.execute()
       initiator ! ProcessResult(true)
+      self ! PoisonPill
     }
   }
 }
