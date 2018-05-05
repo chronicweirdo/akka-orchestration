@@ -1,8 +1,8 @@
 package com.cacoveanu.akkaorchestration
 
-import akka.actor.Actor
+import akka.actor.{Actor, PoisonPill}
 import com.cacoveanu.akkaorchestration.MasterActor._
-import com.cacoveanu.akkaorchestration.WorkerActor.{Process, ProcessResult}
+import com.cacoveanu.akkaorchestration.WorkerActor.{Process, ProcessResult, Timeout}
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Scope
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component
 
 import scala.beans.BeanProperty
 import scala.collection.mutable
+import scala.concurrent.duration._
 
 object MasterActor {
 
@@ -23,11 +24,14 @@ object MasterActor {
 
   case class StartedWorker(id: Int)
 
+  case class SanityCheck(lastProgress: CheckResult)
+
 }
 
 @Component("masterActorPrototype")
 @Scope("prototype")
 class MasterActor extends Actor {
+  import context._
 
   val logger = LoggerFactory.getLogger(classOf[MasterActor])
 
@@ -53,6 +57,7 @@ class MasterActor extends Actor {
 
   override def receive: Receive = {
     case StartWork =>
+      context.system.scheduler.scheduleOnce(2 minutes, self, SanityCheck(CheckResult(running, messages.size)))
       for (id <- 1 to 100000) {
         messages.enqueue(Process(id.toString))
       }
@@ -65,5 +70,12 @@ class MasterActor extends Actor {
     case Check =>
       logger.info("checking running tasks")
       sender() ! CheckResult(running, messages.size)
+    case SanityCheck(CheckResult(lastRunning, lastEnqueued)) =>
+      if (lastRunning == running && lastEnqueued == messages.size) {
+        logger.warn("no progress being made")
+        throw new Exception("no progress being made")
+      } else {
+        context.system.scheduler.scheduleOnce(2 minutes, self, SanityCheck(CheckResult(running, messages.size)))
+      }
   }
 }
