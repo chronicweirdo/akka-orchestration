@@ -4,7 +4,7 @@ import java.util.concurrent.Executors
 
 import akka.actor.{Actor, ActorRef, PoisonPill}
 import com.cacoveanu.akkaorchestration.MasterActor._
-import com.cacoveanu.akkaorchestration.WorkerActor.{Process, ProcessResult}
+import com.cacoveanu.akkaorchestration.WorkerActor.{Process, ProcessResult, ProcessSynch}
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Scope
@@ -70,7 +70,7 @@ class WorkerStarterActor extends Actor {
   override def receive: Receive = {
     case StartWorkers(ids) =>
       for (id <- ids) {
-        getWorker ! Process(id.toString, sender())
+        getWorker ! ProcessSynch(id.toString, sender())
         sender() ! StartedWorker(id)
       }
       self ! PoisonPill
